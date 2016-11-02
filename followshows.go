@@ -9,8 +9,8 @@ func airedToday(feedLink string) ([]string, error) {
     var episodes []string
 
     resp, err := http.Get(feedLink)
-    defer resp.Body.Close()
     if err != nil { return episodes, err }
+    defer resp.Body.Close()
 
     today := time.Now().Format("02 Jan 2006")
 

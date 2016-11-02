@@ -42,8 +42,8 @@ func getTransmissionSession(auth string) {
     setBasicAuth(req, trBasicAuth)
 
     resp, err := (&http.Client{}).Do(req)
-    defer resp.Body.Close()
     if err != nil { panic(err) }
+    defer resp.Body.Close()
 
     sessionId = resp.Header.Get(sessionHdr)
 }
@@ -66,10 +66,9 @@ func addToTransmission(magnet string) (string, error) {
     setBasicAuth(req, trBasicAuth)
     req.Header.Add(sessionHdr, sessionId)
 
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    defer resp.Body.Close()
+    resp, err := (&http.Client{}).Do(req)
     if err != nil { return "", err }
+    defer resp.Body.Close()
 
     body, err := ioutil.ReadAll(resp.Body)
 

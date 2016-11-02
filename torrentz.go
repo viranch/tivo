@@ -15,10 +15,9 @@ func searchTorrent(title, auth string) (string, error) {
     req.URL.RawQuery = q.Encode()
     setBasicAuth(req, auth)
 
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    defer resp.Body.Close()
+    resp, err := (&http.Client{}).Do(req)
     if err != nil { return "", err }
+    defer resp.Body.Close()
 
     torrents, err := xpath(resp.Body, "//item/description/text()")
     if err != nil { return "", err }
