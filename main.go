@@ -5,13 +5,29 @@ import (
     "os"
     "net/http"
     "gopkg.in/xmlpath.v2"
+    "encoding/json"
+    "bytes"
 
     "io"
+    "io/ioutil"
     "time"
     "sync"
     "regexp"
     "strconv"
 )
+
+var trWg sync.WaitGroup
+var trSessionHdr string
+var trSessionId string
+
+type TrRequestArgs struct {
+    Filename string  `json:"filename"`
+}
+
+type TrRequest struct {
+    Method string `json:"method"`
+    Arguments TrRequestArgs `json:"arguments"`
+}
 
 func xpath(r io.Reader, spath string) ([]string, error) {
     var results []string
@@ -66,18 +82,70 @@ func search(title string) (string, error) {
     return winner, nil
 }
 
+func getTransmissionSession() {
+    resp, err := http.Get("http://localhost/transmission/rpc")
+    defer resp.Body.Close()
+    if err != nil { panic(err) }
+
+    trSessionId = resp.Header.Get(trSessionHdr)
+}
+
+func addToTransmission(magnet string) error {
+    trWg.Wait()
+
+    data := TrRequest{
+        Method: "torrent-add",
+        Arguments: TrRequestArgs{
+            Filename: magnet,
+        },
+    }
+    jsonData, err := json.Marshal(data)
+    if err != nil { return err }
+
+    req, err := http.NewRequest("POST", "http://localhost/transmission/rpc", bytes.NewBufferString(string(jsonData)))
+    if err != nil { return err }
+
+    req.Header.Add(trSessionHdr, trSessionId)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    defer resp.Body.Close()
+    if err != nil { return err }
+
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil { return err }
+
+    fmt.Println(string(body))
+
+    return nil
+}
+
 func download(title string) {
     title_regex := regexp.MustCompile(`.* S\d\dE\d\d`)
     replace_regex := regexp.MustCompile(`\s*\(.*\)`)
     title = replace_regex.ReplaceAllLiteralString(title_regex.FindString(title), "")
 
+    fmt.Print("Searching '" + title + "'... ")
+
     hash, err := search(title)
     if err != nil { panic(err) }
 
-    fmt.Println(title, hash)
+    fmt.Println(hash)
+
+    magnet := "magnet:?xt=urn:btih:" + hash
+    err = addToTransmission(magnet)
+    if err != nil { panic(err) }
 }
 
 func main() {
+    trSessionHdr = "X-Transmission-Session-Id"
+
+    trWg.Add(1)
+    go func() {
+        defer trWg.Done()
+        getTransmissionSession()
+    }()
+
     resp, err := http.Get(os.Args[1])
     defer resp.Body.Close()
     if err != nil { panic(err) }
