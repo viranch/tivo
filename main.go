@@ -14,12 +14,12 @@ func download(title string) {
     replaceRegex := regexp.MustCompile(`\s*\(.*\)`)
     title = replaceRegex.ReplaceAllLiteralString(titleRegex.FindString(title), "")
 
-    fmt.Print("Searching '" + title + "'... ")
+    fmt.Println(title)
 
     hash, err := searchTorrent(title)
     if err != nil { panic(err) }
 
-    fmt.Println(hash)
+    fmt.Println(title, ":", hash)
 
     magnet := magnetPrefix + hash
     resp, err := addToTransmission(magnet)
