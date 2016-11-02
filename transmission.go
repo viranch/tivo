@@ -11,8 +11,11 @@ import (
 const rpcUrl = "http://localhost/transmission/rpc"
 const sessionHdr = "X-Transmission-Session-Id"
 
-var wg sync.WaitGroup
-var sessionId string
+var (
+    wg sync.WaitGroup
+    sessionId string
+    trBasicAuth string
+)
 
 type TrRequestArgs struct {
     Filename string  `json:"filename"`
@@ -23,16 +26,22 @@ type TrRequest struct {
     Arguments TrRequestArgs `json:"arguments"`
 }
 
-func spawnTransmissionSession() {
+func spawnTransmissionSession(auth string) {
     wg.Add(1)
     go func() {
         defer wg.Done()
-        getTransmissionSession()
+        getTransmissionSession(auth)
     }()
 }
 
-func getTransmissionSession() {
-    resp, err := http.Get(rpcUrl)
+func getTransmissionSession(auth string) {
+    trBasicAuth = auth
+
+    req, err := http.NewRequest("GET", rpcUrl, nil)
+    if err != nil { panic(err) }
+    setBasicAuth(req, trBasicAuth)
+
+    resp, err := (&http.Client{}).Do(req)
     defer resp.Body.Close()
     if err != nil { panic(err) }
 
@@ -54,6 +63,7 @@ func addToTransmission(magnet string) (string, error) {
     req, err := http.NewRequest("POST", rpcUrl, bytes.NewBufferString(string(jsonData)))
     if err != nil { return "", err }
 
+    setBasicAuth(req, trBasicAuth)
     req.Header.Add(sessionHdr, sessionId)
 
     client := &http.Client{}

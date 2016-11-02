@@ -6,13 +6,14 @@ import (
     "strconv"
 )
 
-func searchTorrent(title string) (string, error) {
+func searchTorrent(title, auth string) (string, error) {
     req, err := http.NewRequest("GET", "http://localhost/tz/feed", nil)
     if err != nil { return "", err }
 
     q := req.URL.Query()
     q.Add("f", title)
     req.URL.RawQuery = q.Encode()
+    setBasicAuth(req, auth)
 
     client := &http.Client{}
     resp, err := client.Do(req)

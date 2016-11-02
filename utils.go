@@ -3,6 +3,8 @@ package main
 import (
     "io"
     "gopkg.in/xmlpath.v2"
+    "net/http"
+    "encoding/base64"
 )
 
 func xpath(r io.Reader, spath string) ([]string, error) {
@@ -18,4 +20,10 @@ func xpath(r io.Reader, spath string) ([]string, error) {
     }
 
     return results, nil
+}
+
+func setBasicAuth(req *http.Request, auth string) {
+    if auth != "" {
+        req.Header.Add("Authorization", "Basic " + base64.StdEncoding.EncodeToString([]byte(auth)))
+    }
 }
