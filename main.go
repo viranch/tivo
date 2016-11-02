@@ -87,8 +87,9 @@ func main() {
     if err != nil { panic(err) }
 
     var wg sync.WaitGroup
+    wg.Add(len(aired_today))
+
     for _, title := range aired_today {
-        wg.Add(1)
         go func(title string) {
             defer wg.Done()
             download(title)
