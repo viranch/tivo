@@ -60,7 +60,7 @@ func addToTransmission(magnet string) (string, error) {
     jsonData, err := json.Marshal(data)
     if err != nil { return "", err }
 
-    req, err := http.NewRequest("POST", rpcUrl, bytes.NewBufferString(string(jsonData)))
+    req, err := http.NewRequest("POST", rpcUrl, bytes.NewReader(jsonData))
     if err != nil { return "", err }
 
     setBasicAuth(req, trBasicAuth)
