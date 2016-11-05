@@ -17,7 +17,6 @@ var (
 
     trWg sync.WaitGroup
     errChannel chan error
-    doneChannel chan bool
 )
 
 func initFlags() {
@@ -60,15 +59,11 @@ func handleError(err error) {
 func fingersCrossed(wg *sync.WaitGroup) {
     go func() {
         wg.Wait()
-        close(doneChannel)
+        errChannel <- nil
     }()
 
-    select {
-    case <-doneChannel:
-    case err := <-errChannel:
-        if err != nil {
-            panic(err)
-        }
+    if err := <-errChannel; err != nil {
+        panic(err)
     }
 }
 
@@ -82,7 +77,6 @@ func main() {
     }
 
     errChannel = make(chan error, 1)
-    doneChannel = make(chan bool, 1)
 
     trWg.Add(1)
     go func(auth string) {
