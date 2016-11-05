@@ -16,6 +16,8 @@ var (
     searchSuffix string
 
     trWg sync.WaitGroup
+    errChannel chan error
+    doneChannel chan bool
 )
 
 func initFlags() {
@@ -51,6 +53,25 @@ func download(title, suffix, auth string) error {
     return nil
 }
 
+func handleError(err error) {
+    errChannel <- err
+}
+
+func fingersCrossed(wg *sync.WaitGroup) {
+    go func() {
+        wg.Wait()
+        close(doneChannel)
+    }()
+
+    select {
+    case <-doneChannel:
+    case err := <-errChannel:
+        if err != nil {
+            panic(err)
+        }
+    }
+}
+
 func main() {
     initFlags()
 
@@ -60,15 +81,18 @@ func main() {
         os.Exit(1)
     }
 
+    errChannel = make(chan error, 1)
+    doneChannel = make(chan bool, 1)
+
     trWg.Add(1)
     go func(auth string) {
         defer trWg.Done()
         err := getTransmissionSession(auth)
-        if err != nil { panic(err) }
+        if err != nil { handleError(err) }
     }(basicAuth)
 
     episodes, err := airedToday(episodeFeedLink)
-    if err != nil { panic(err) }
+    if err != nil { handleError(err) }
 
     var wg sync.WaitGroup
     wg.Add(len(episodes))
@@ -77,9 +101,9 @@ func main() {
         go func(title, suffix, auth string) {
             defer wg.Done()
             err := download(title, suffix, auth)
-            if err != nil { panic(err) }
+            if err != nil { handleError(err) }
         }(title, searchSuffix, basicAuth)
     }
 
-    wg.Wait()
+    fingersCrossed(&wg)
 }
