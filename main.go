@@ -15,6 +15,7 @@ var (
     episodeFeedLink string
     searchSuffix string
 
+    trWg sync.WaitGroup
     errChannel chan error
 )
 
@@ -25,7 +26,7 @@ func initFlags() {
     flag.Parse()
 }
 
-func search(title string) (string, error) {
+func download(title string) error {
     titleRegex := regexp.MustCompile(`.* S\d\dE\d\d`)
     replaceRegex := regexp.MustCompile(`\s*\(.*\)`)
     title = replaceRegex.ReplaceAllLiteralString(titleRegex.FindString(title), "")
@@ -37,14 +38,11 @@ func search(title string) (string, error) {
     fmt.Println(title)
 
     hash, err := searchTorrent(title, basicAuth)
-    if err != nil { return "", err }
+    if err != nil { return err }
 
     fmt.Println(title, ":", hash)
 
-    return hash, nil
-}
-
-func download(hash string) error {
+    trWg.Wait()
     magnet := magnetPrefix + hash
     resp, err := addToTransmission(magnet)
     if err != nil { return err }
@@ -80,7 +78,6 @@ func main() {
 
     errChannel = make(chan error, 1)
 
-    var trWg sync.WaitGroup
     trWg.Add(1)
     go func(auth string) {
         defer trWg.Done()
@@ -97,12 +94,7 @@ func main() {
     for _, title := range episodes {
         go func(title string) {
             defer wg.Done()
-
-            hash, err := search(title)
-            if err != nil { handleError(err) }
-
-            trWg.Wait()
-            err = download(hash)
+            err := download(title)
             if err != nil { handleError(err) }
         }(title)
     }
