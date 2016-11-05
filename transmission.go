@@ -30,22 +30,25 @@ func spawnTransmissionSession(auth string) {
     wg.Add(1)
     go func() {
         defer wg.Done()
-        getTransmissionSession(auth)
+        err := getTransmissionSession(auth)
+        if err != nil { panic(err) }
     }()
 }
 
-func getTransmissionSession(auth string) {
+func getTransmissionSession(auth string) error {
     trBasicAuth = auth
 
     req, err := http.NewRequest("GET", rpcUrl, nil)
-    if err != nil { panic(err) }
+    if err != nil { return err }
     setBasicAuth(req, trBasicAuth)
 
     resp, err := (&http.Client{}).Do(req)
-    if err != nil { panic(err) }
+    if err != nil { return err }
     defer resp.Body.Close()
 
     sessionId = resp.Header.Get(sessionHdr)
+
+    return nil
 }
 
 func addToTransmission(magnet string) (string, error) {
