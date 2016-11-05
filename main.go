@@ -9,12 +9,13 @@ import (
 )
 
 const magnetPrefix = "magnet:?xt=urn:btih:"
-var trWg sync.WaitGroup
 
 var (
     basicAuth string
     episodeFeedLink string
     searchSuffix string
+
+    trWg sync.WaitGroup
 )
 
 func initFlags() {
@@ -22,15 +23,6 @@ func initFlags() {
     flag.StringVar(&episodeFeedLink, "feed", "", "Link to episode RSS feed")
     flag.StringVar(&searchSuffix, "suffix", "", "Torrent search suffix (eg, 720p)")
     flag.Parse()
-}
-
-func spawnTransmissionSession(auth string) {
-    trWg.Add(1)
-    go func(auth string) {
-        defer trWg.Done()
-        err := getTransmissionSession(auth)
-        if err != nil { panic(err) }
-    }(auth)
 }
 
 func download(title, suffix, auth string) {
@@ -66,7 +58,12 @@ func main() {
         os.Exit(1)
     }
 
-    spawnTransmissionSession(basicAuth)
+    trWg.Add(1)
+    go func(auth string) {
+        defer trWg.Done()
+        err := getTransmissionSession(auth)
+        if err != nil { panic(err) }
+    }(basicAuth)
 
     episodes, err := airedToday(episodeFeedLink)
     if err != nil { panic(err) }
