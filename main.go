@@ -15,7 +15,6 @@ var (
     episodeFeedLink string
     searchSuffix string
 
-    trWg sync.WaitGroup
     errChannel chan error
 )
 
@@ -26,7 +25,7 @@ func initFlags() {
     flag.Parse()
 }
 
-func download(title string) error {
+func download(title string, trWg *sync.WaitGroup) error {
     titleRegex := regexp.MustCompile(`.* S\d\dE\d\d`)
     replaceRegex := regexp.MustCompile(`\s*\(.*\)`)
     title = replaceRegex.ReplaceAllLiteralString(titleRegex.FindString(title), "")
@@ -78,6 +77,7 @@ func main() {
 
     errChannel = make(chan error, 1)
 
+    var trWg sync.WaitGroup
     trWg.Add(1)
     go func(auth string) {
         defer trWg.Done()
@@ -94,7 +94,7 @@ func main() {
     for _, title := range episodes {
         go func(title string) {
             defer wg.Done()
-            err := download(title)
+            err := download(title, &trWg)
             if err != nil { handleError(err) }
         }(title)
     }
