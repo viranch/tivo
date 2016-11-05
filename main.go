@@ -25,7 +25,7 @@ func initFlags() {
     flag.Parse()
 }
 
-func download(title, suffix, auth string) {
+func download(title, suffix, auth string) error {
     titleRegex := regexp.MustCompile(`.* S\d\dE\d\d`)
     replaceRegex := regexp.MustCompile(`\s*\(.*\)`)
     title = replaceRegex.ReplaceAllLiteralString(titleRegex.FindString(title), "")
@@ -37,16 +37,18 @@ func download(title, suffix, auth string) {
     fmt.Println(title)
 
     hash, err := searchTorrent(title, auth)
-    if err != nil { panic(err) }
+    if err != nil { return err }
 
     fmt.Println(title, ":", hash)
 
     trWg.Wait()
     magnet := magnetPrefix + hash
     resp, err := addToTransmission(magnet)
-    if err != nil { panic(err) }
+    if err != nil { return err }
 
     fmt.Println(resp)
+
+    return nil
 }
 
 func main() {
@@ -74,7 +76,8 @@ func main() {
     for _, title := range episodes {
         go func(title, suffix, auth string) {
             defer wg.Done()
-            download(title, suffix, auth)
+            err := download(title, suffix, auth)
+            if err != nil { panic(err) }
         }(title, searchSuffix, basicAuth)
     }
 
