@@ -14,6 +14,7 @@ func searchTorrent(title, auth string) (string, error) {
     q.Add("f", title)
     req.URL.RawQuery = q.Encode()
     setBasicAuth(req, auth)
+    pretendToBeChrome(req)
 
     resp, err := (&http.Client{}).Do(req)
     if err != nil { return "", err }

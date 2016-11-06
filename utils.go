@@ -7,6 +7,8 @@ import (
     "encoding/base64"
 )
 
+const chromeUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.93 Safari/537.36"
+
 func xpath(r io.Reader, spath string) ([]string, error) {
     var results []string
 
@@ -26,4 +28,8 @@ func setBasicAuth(req *http.Request, auth string) {
     if auth != "" {
         req.Header.Add("Authorization", "Basic " + base64.StdEncoding.EncodeToString([]byte(auth)))
     }
+}
+
+func pretendToBeChrome(req *http.Request) {
+    req.Header.Add("User-Agent", chromeUserAgent)
 }
