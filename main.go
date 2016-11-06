@@ -36,6 +36,7 @@ func download(title string, trWg *sync.WaitGroup) error {
 
     hash, err := searchTorrent(title, basicAuth)
     if err != nil { return err }
+    if hash == "" { return fmt.Errorf("No torrent found") }
 
     fmt.Println(title, ":", hash)
 
