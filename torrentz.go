@@ -36,8 +36,10 @@ func searchTorrent(title, auth string) (string, error) {
         peers, err := strconv.Atoi(matches[3])
         if err != nil { return "", err }
 
-        if (seeds * 2) + peers > score {
+        newScore := (seeds * 2) + peers
+        if newScore > score {
             winner = matches[4]
+            score = newScore
         }
     }
 
