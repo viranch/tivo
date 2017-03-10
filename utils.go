@@ -5,6 +5,7 @@ import (
     "gopkg.in/xmlpath.v2"
     "net/http"
     "encoding/base64"
+    "bytes"
 )
 
 const chromeUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.93 Safari/537.36"
@@ -22,6 +23,10 @@ func xpath(r io.Reader, spath string) ([]string, error) {
     }
 
     return results, nil
+}
+
+func xpathR(buf []byte, spath string) ([]string, error) {
+    return xpath(bytes.NewReader(buf), spath)
 }
 
 func setBasicAuth(req *http.Request, auth string) {
