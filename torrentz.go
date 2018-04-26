@@ -4,9 +4,12 @@ import (
     "net/http"
     "regexp"
     "strconv"
+    "errors"
 )
 
 func searchTorrent(title, auth string) (string, error) {
+    return "", errors.New("Torrentz unavailable")
+
     req, err := http.NewRequest("GET", "http://localhost/tz/feed", nil)
     if err != nil { return "", err }
 
@@ -20,7 +23,7 @@ func searchTorrent(title, auth string) (string, error) {
     if err != nil { return "", err }
     defer resp.Body.Close()
 
-    torrents, err := xpath(resp.Body, "//item/description/text()")
+    torrents, err := xpathS(resp.Body, "//item/description/text()")
     if err != nil { return "", err }
 
     descRegex, err := regexp.Compile(`Size: (\d+ \w+) Seeds: (\d+) Peers: (\d+) Hash: (\w+)`)

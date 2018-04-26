@@ -14,5 +14,5 @@ func airedToday(feedLink string) ([]string, error) {
 
     today := time.Now().Format("02 Jan 2006")
 
-    return xpath(resp.Body, "//item/pubDate[contains(text(), '" + today + "')]/../title/text()")
+    return xpathS(resp.Body, "//item/pubDate[contains(text(), '" + today + "')]/../title/text()")
 }

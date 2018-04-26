@@ -2,14 +2,14 @@ package main
 
 import (
     "net/http"
-    "regexp"
     "strconv"
     "net/url"
     "io/ioutil"
+    "strings"
 )
 
 func searchSkyTorrents(title, auth string) (string, error) {
-    req, err := http.NewRequest("GET", "http://localhost/st/rss/all/ad/1/" + url.PathEscape(title), nil)
+    req, err := http.NewRequest("GET", "http://localhost/st/rss?query=" + url.PathEscape(title), nil)
     if err != nil { return "", err }
 
     setBasicAuth(req, auth)
@@ -22,29 +22,23 @@ func searchSkyTorrents(title, auth string) (string, error) {
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil { return "", err }
 
-    torrentsDesc, err := xpathR(body, "//item/description/text()")
-    if err != nil { return "", err }
-    torrentsHash, err := xpathR(body, "//item/guid/text()")
-    if err != nil { return "", err }
-
-    descRegex, err := regexp.Compile(`(\d+) seeder\(s\), (\d+) leecher\(s\), `)
-    if err != nil { return "", err }
-    hashRegex, err := regexp.Compile(`/info/(\w+)/`)
+    bodyStr := string(body[:])
+    replacedBody := strings.Replace(bodyStr, "torznab:attr", "torznabAttr", -1)
+    body = []byte(replacedBody)
+    items, err := xpathByte(body, "//item")
     if err != nil { return "", err }
 
     score := 0
     var winner string
-    for i, desc := range torrentsDesc {
-        matches := descRegex.FindStringSubmatch(desc)
-
-        seeds, err := strconv.Atoi(matches[1])
-        if err != nil { return "", err }
-        peers, err := strconv.Atoi(matches[2])
-        if err != nil { return "", err }
+    for _, item := range items {
+        seeds, err := strconv.Atoi(xpathN(item, ".//torznabAttr[@name='seeders']/@value"))
+        if err != nil { continue }
+        peers, err := strconv.Atoi(xpathN(item, ".//torznabAttr[@name='peers']/@value"))
+        if err != nil { continue }
 
         newScore := (seeds * 2) + peers
         if newScore > score {
-            winner = hashRegex.FindStringSubmatch(torrentsHash[i])[1]
+            winner = xpathN(item, ".//torznabAttr[@name='infohash']/@value")
             score = newScore
         }
     }

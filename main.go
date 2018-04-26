@@ -36,7 +36,7 @@ func download(title string, trWg *sync.WaitGroup) error {
 
     hash, err := searchTorrent(title, basicAuth)
     if err != nil || hash == "" {
-        // fallback to skytorrents.in
+        // fallback to skytorrents
         hash, err = searchSkyTorrents(title, basicAuth)
     }
     if err != nil { return err }
