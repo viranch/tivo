@@ -34,11 +34,7 @@ func download(title string, trWg *sync.WaitGroup) error {
 
     fmt.Println(title)
 
-    hash, err := searchTorrent(title, basicAuth)
-    if err != nil || hash == "" {
-        // fallback to skytorrents
-        hash, err = searchSkyTorrents(title, basicAuth)
-    }
+    hash, err := searchSkyTorrents(title, basicAuth)
     if err != nil { return err }
     if hash == "" { return fmt.Errorf("No torrent found") }
 
