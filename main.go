@@ -8,16 +8,16 @@ import (
     "regexp"
 )
 
-const magnetPrefix = "magnet:?xt=urn:btih:"
-
 var (
     basicAuth string
+    apiKey string
     episodeFeedLink string
     searchSuffix string
 )
 
 func initFlags() {
     flag.StringVar(&basicAuth, "auth", "", "Basic authentication credentials in USER:PASSWORD format")
+    flag.StringVar(&apiKey, "api", "", "API key for torrent search")
     flag.StringVar(&episodeFeedLink, "feed", "", "Link to episode RSS feed")
     flag.StringVar(&searchSuffix, "suffix", "", "Torrent search suffix (eg, 720p)")
     flag.Parse()
@@ -34,14 +34,13 @@ func download(title string, trWg *sync.WaitGroup) error {
 
     fmt.Println(title)
 
-    hash, err := searchSkyTorrents(title, basicAuth)
+    magnet, err := searchJackett(title, basicAuth, apiKey)
     if err != nil { return err }
-    if hash == "" { return fmt.Errorf("No torrent found") }
+    if magnet == "" { return fmt.Errorf("No torrent found") }
 
-    fmt.Println(title, ":", hash)
+    fmt.Println(title, ":", magnet)
 
     trWg.Wait()
-    magnet := magnetPrefix + hash
     resp, err := addToTransmission(magnet)
     if err != nil { return err }
 

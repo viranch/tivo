@@ -8,8 +8,9 @@ import (
     "strings"
 )
 
-func searchSkyTorrents(title, auth string) (string, error) {
-    req, err := http.NewRequest("GET", "http://localhost/st/rss?query=" + url.PathEscape(title), nil)
+func searchJackett(title, auth, apiKey string) (string, error) {
+    url := "http://localhost/jk/api/v2.0/indexers/all/results/torznab/api?t=search&q=" + url.PathEscape(title) + "&apikey=" + url.PathEscape(apiKey)
+    req, err := http.NewRequest("GET", url, nil)
     if err != nil { return "", err }
 
     setBasicAuth(req, auth)
@@ -38,7 +39,7 @@ func searchSkyTorrents(title, auth string) (string, error) {
 
         newScore := (seeds * 2) + peers
         if newScore > score {
-            winner = xpathN(item, ".//torznabAttr[@name='infohash']/@value")
+            winner = xpathN(item, ".//torznabAttr[@name='magneturl']/@value")
             score = newScore
         }
     }
