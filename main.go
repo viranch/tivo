@@ -5,48 +5,21 @@ import (
     "os"
     "flag"
     "sync"
-    "regexp"
 )
 
 var (
     basicAuth string
-    apiKey string
     episodeFeedLink string
-    searchSuffix string
+    remote string
+    seenFile string
 )
 
 func initFlags() {
-    flag.StringVar(&basicAuth, "auth", "", "Basic authentication credentials in USER:PASSWORD format")
-    flag.StringVar(&apiKey, "api", "", "API key for torrent search")
     flag.StringVar(&episodeFeedLink, "feed", "", "Link to episode RSS feed")
-    flag.StringVar(&searchSuffix, "suffix", "", "Torrent search suffix (eg, 720p)")
+    flag.StringVar(&remote, "remote", "http://127.0.0.1", "Transmission and search remote base URL, default: http://127.0.0.1")
+    flag.StringVar(&basicAuth, "auth", "", "Basic authentication credentials in USER:PASSWORD format")
+    flag.StringVar(&seenFile, "seen", os.Getenv("HOME") + "/.config/tivo.seen", "Location of the seen file, default: ~/.config/tivo.seen")
     flag.Parse()
-}
-
-func download(title string, trWg *sync.WaitGroup) error {
-    titleRegex := regexp.MustCompile(`.* S\d\dE\d\d`)
-    replaceRegex := regexp.MustCompile(`\s*\(.*\)`)
-    title = replaceRegex.ReplaceAllLiteralString(titleRegex.FindString(title), "")
-
-    if searchSuffix != "" {
-        title = title + " " + searchSuffix
-    }
-
-    fmt.Println(title)
-
-    magnet, err := searchJackett(title, basicAuth, apiKey)
-    if err != nil { return err }
-    if magnet == "" { return fmt.Errorf("No torrent found") }
-
-    fmt.Println(title, ":", magnet)
-
-    trWg.Wait()
-    resp, err := addToTransmission(magnet)
-    if err != nil { return err }
-
-    fmt.Println(resp)
-
-    return nil
 }
 
 func fatal(err error) {
@@ -66,25 +39,26 @@ func main() {
     trWg.Add(1)
     go func(auth string) {
         defer trWg.Done()
-        err := getTransmissionSession(auth)
+        err := getTransmissionSession(remote, auth)
         if err != nil { fatal(err) }
     }(basicAuth)
 
-    episodes, err := airedToday(episodeFeedLink)
+    episodes, err := airedToday(episodeFeedLink, seenFile)
     if err != nil { fatal(err) }
 
-    var wg sync.WaitGroup
-    wg.Add(len(episodes))
-
-    for _, title := range episodes {
-        go func(title string) {
-            defer wg.Done()
-            err := download(title, &trWg)
-            if err != nil {
-                fmt.Printf("Error processing '%s': %s\n", title, err)
-            }
-        }(title)
+    if len(episodes) == 0 {
+        fmt.Println("No new episodes\n")
     }
 
-    wg.Wait()
+    trWg.Wait()
+
+    for _, episode := range episodes {
+        fmt.Println(episode.title, ":", episode.magnetUri)
+        resp, err := addToTransmission(remote, episode.magnetUri)
+        if err != nil {
+            fmt.Println(err)
+        } else {
+            fmt.Println(resp)
+        }
+    }
 }

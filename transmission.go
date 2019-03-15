@@ -7,7 +7,7 @@ import (
     "io/ioutil"
 )
 
-const rpcUrl = "http://localhost/transmission/rpc"
+const rpcUrl = "/transmission/rpc"
 const sessionHdr = "X-Transmission-Session-Id"
 
 var (
@@ -24,10 +24,10 @@ type TrRequest struct {
     Arguments TrRequestArgs `json:"arguments"`
 }
 
-func getTransmissionSession(auth string) error {
+func getTransmissionSession(remote, auth string) error {
     trBasicAuth = auth
 
-    req, err := http.NewRequest("GET", rpcUrl, nil)
+    req, err := http.NewRequest("GET", remote + rpcUrl, nil)
     if err != nil { return err }
     setBasicAuth(req, trBasicAuth)
 
@@ -40,7 +40,7 @@ func getTransmissionSession(auth string) error {
     return nil
 }
 
-func addToTransmission(magnet string) (string, error) {
+func addToTransmission(remote, magnet string) (string, error) {
     data := TrRequest{
         Method: "torrent-add",
         Arguments: TrRequestArgs{
@@ -50,7 +50,7 @@ func addToTransmission(magnet string) (string, error) {
     jsonData, err := json.Marshal(data)
     if err != nil { return "", err }
 
-    req, err := http.NewRequest("POST", rpcUrl, bytes.NewReader(jsonData))
+    req, err := http.NewRequest("POST", remote + rpcUrl, bytes.NewReader(jsonData))
     if err != nil { return "", err }
 
     setBasicAuth(req, trBasicAuth)
